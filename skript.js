@@ -38,6 +38,7 @@ function lisaArtikkel(toode) {
   `);
 
     lisaKorviJalus(); // selle funktsiooni lisame allpool
+    kuvaKorviSumma(); 
 }
 
 //funktsioon nupu sündmusekuulutaja jaoks
@@ -61,11 +62,23 @@ function suurendaArtikkel(toode, korvArtikkelD) {
         if (korvArtikkel.nimi === toode.nimi) {
             korvArtikkelD.querySelector('.korv_artikkel_kogus').innerText = ++korvArtikkel.kogus;
 
+        kuvaKorviSumma();
         }
     });
+
 }
 
 //Ülesanne 5.1: lisa funktsioon toodete hulga vähendamiseks.
+
+function decreaseItem(toode, korvArtikkelD) {
+    korv.forEach(korvArtikkel => {
+        if (korvArtikkel.nimi === toode.nimi) {
+            korvArtikkelD.querySelector('.korv_artikkel_kogus').innerText = --korvArtikkel.kogus;
+        kuvaKorviSumma();
+        }
+    });
+    kuvaKorviSumma();
+}
 
 //toodete eemaldamine ostukorvist
 function eemaldaArtikkel(toode, korvArtikkelD, lisaKorviNupp) {
@@ -73,10 +86,14 @@ function eemaldaArtikkel(toode, korvArtikkelD, lisaKorviNupp) {
     korv = korv.filter(korvArtikkel => korvArtikkel.nimi !== toode.nimi);
     lisaKorviNupp.innerText = 'Lisa ostukorvi';
     lisaKorviNupp.disabled = false;
+    kuvaKorviSumma();
     if (korv.length < 1) {
         document.querySelector('.korv-jalus').remove();
     }
+
 }
+
+
 
 //ostukorvi jaluse ehk alumiste nuppude lisamine
 function lisaKorviJalus() {
@@ -90,6 +107,7 @@ function lisaKorviJalus() {
         document.querySelector('[data-action="tyhjenda_korv"]').addEventListener('click', () => tuhjendaKorv());
         document.querySelector('[data-action="kassa"]').addEventListener('click', () => kassa());
     }
+    kuvaKorviSumma();
 }
 
 // ostukorvi tühjendamine
@@ -104,11 +122,33 @@ function tuhjendaKorv() {
         lisaKorviNupp.innerText = 'Lisa ostukorvi';
         lisaKorviNupp.disabled = false;
     });
+    kuvaKorviSumma();
 }
 
 
 //Ülesanne 5.2: lisa funktsioon, mis arvutab ostukorvi summa kokku.
-
+function hindStrToNumber(v) {
+    return parseFloat(String(v).replace(/[^\d.,-]/g, '').replace(',', '.')) || 0;
+  }
+  
+  function arvutaKorviSumma() {
+    return korv.reduce((sum, art) => sum + hindStrToNumber(art.hind) * (Number(art.kogus) || 0), 0);
+  }
+  
+  function kuvaKorviSumma() {
+    const pealkiri = document.querySelector('.maksumus_summa');
+    const siht = document.querySelector('.hind_kokku');
+    if (!siht) return;
+    const total = arvutaKorviSumma();
+    if (total <= 0) {
+      if (pealkiri) pealkiri.style.display = 'none';
+      siht.textContent = '';
+    } else {
+      if (pealkiri) pealkiri.style.display = '';
+      siht.textContent = total.toFixed(2) + ' €';
+    }
+  }
+  
 
 //-------------------------2. osa Taimer ------------------------
 
@@ -152,47 +192,87 @@ window.onload = function () {
 
 
 //-------------------------3. osa Tarne vorm ------------------------
-
 const form = document.querySelector("form");
 const eesnimi = document.getElementById("eesnimi");
 const perenimi = document.getElementById("perenimi");
 const kinnitus = document.getElementById("kinnitus");
-
 const errorMessage = document.getElementById("errorMessage");
+const telefon = document.getElementById("telefon");
+const kupong = document.getElementById("kupong");
 
 form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const errors = [];
+  e.preventDefault();
+  const errors = [];
 
-    if (eesnimi.value.trim() === "") {
-        errors.push("Sisesta eesnimi")
+  if (eesnimi.value.trim() === "") {
+    errors.push("Sisesta eesnimi");
+  }
+  if (perenimi.value.trim() === "") {
+    errors.push("Sisesta perenimi");
+  }
+  if (!kinnitus.checked) {
+    errors.push("Palun nõustu tingimustega");
+  }
+  //minu kood
+  if (telefon) {
+    const tel = telefon.value.trim();
+    if (tel.length < 6) {
+      errors.push("Sisesta vähemalt 6 sümbolit!");
+    }
+    if (!/^\d+$/.test(tel)) {
+      errors.push("Sisestada cõib ainult nubmreid!");
+    }
+  }
+
+
+const hasDigits = /\d/;
+
+    if (hasDigits.test(eesnimi.value.trim())) {
+    errors.push("Eesnimi ei tohi sisaldada numbreid");
+    }
+    if (hasDigits.test(perenimi.value.trim())) {
+    errors.push("Perenimi ei tohi sisaldada numbreid");
     }
 
-    if (perenimi.value.trim() === "") {
-        errors.push("Sisesta perenimi")
-    }
+    if (telefon) {
+  const tel = telefon.value.trim();
+    if (tel.length < 6) {
+    errors.push("Sisesta vähemalt 6 sümbolit");
+  }
+    if (!/^\d+$/.test(tel)) {
+    errors.push("Sisestada võib ainult numbreid");
+  }
+}
 
-    if (!kinnitus.checked) {
-        errors.push("Palun nõustu tingimustega");
-    }
+    if (kupong) {
+  const code = kupong.value.trim();
+    if (code !== "" && !/^[A-Za-z0-9]{6}$/.test(code)) {
+    errors.push("Kupong peab olema 6 tähemärki pikk!");
+  }
+}
+if (!document.querySelector('input[name="tarne"]:checked')) {
+    errors.push("Vali üks tarneviis");
+  }
+if (errors.length > 0) {
+  errorMessage.innerHTML = errors.join("<br>");
+} else {
+  errorMessage.innerHTML = "";
+}
 
-    if (errors.length > 0) {
-        e.preventDefault();
-        errorMessage.innerHTML = errors.join(', ');
-    }
-    else {
-        errorMessage.innerHTML = "";
+const tarne1 = document.querySelector('input[name="tarne1"]:checked');
+const tarne2 = document.querySelector('input[name="tarne2"]:checked');
 
-    }
+if (!tarne1 && !tarne2) {
+  errors.push("Vali vähemalt üks tarneviis!");
+}
 
-})
-
+if (tarne1 && tarne2) {
+  errors.push("Valida saab ainult ühe tarneviisi!");
+}
+});
 /* Ülesanne 5.3: täienda vormi sisendi kontrolli:
 - eesnime ja perenime väljal ei tohi olla numbreid;
 - telefoni väli ei tohi olla lühem kui 6 sümbolit ning peab sisaldama ainult numbreid;
 - üks raadionuppudest peab olema valitud;
 - lisa oma valikul üks lisaväli ning sellele kontroll. Märgi see nii HTML kui JavaScripti
   koodis "minu kood" kommentaariga. */
-
-
-
